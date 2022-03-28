@@ -1,0 +1,274 @@
+---
+title: "Untitled"
+author: "John Maronga"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Business Understanding
+
+Kira Plastinina is a Russian brand that is sold through a defunct chain of retail stores in Russia, Ukraine, Kazakhstan, Belarus, China, Philippines, and Armenia.
+The brand’s Sales and Marketing team would like to understand their customer’s behavior from data that they have collected over the past year.
+More specifically, they would like to learn the characteristics of customer groups.
+
+
+## steps taken
+Problem Definition
+Data Sourcing
+Check the Data
+Perform Data Cleaning
+Perform Exploratory Data Analysis (Univariate, Bivariate & Multivariate)
+Implement the Solution
+Challenge the Solution
+Follow up Questions
+
+## Loading the libraries needed
+
+```{r}
+```
+
+
+```{r}
+install.packages("DataExplorer") 
+install.packages("Hmisc")
+install.packages("pastecs")
+install.packages("psych")
+install.packages("corrplot")
+install.packages("factoextra")
+install.packages("Rtsne")
+install.packages("caret")
+```
+
+```{r}
+#Loading the dataset
+df <- read.csv("http://bit.ly/EcommerceCustomersDataset")
+df
+```
+```{r}
+# checking the top observations
+head(df)
+```
+
+```{r}
+# Checking the bottom observations
+tail(df)
+```
+
+
+```{r}
+# Dataset summary
+summary(df)
+```
+## Data Cleaning
+# Missing Values
+
+```{r}
+# Checking for Missing Values
+
+colSums(is.na(df))
+```
+there are missing values in the dataset
+```{r}
+#Drop the missing data
+df1 <- na.omit(df) 
+head(df1)
+#we have dropped all the rows with missing data
+#dropping this rows should not affect our analysis since we are still left we with many rows to work with
+```
+
+
+```{r}
+#confirm all rows with missing data have been droppped 
+colSums(is.na(df1))
+#our dataset is now complete
+```
+
+```{r}
+#check the number of remaining rows 
+str(df1)
+#We have 12316 rows and 18 columns
+```
+
+```{r}
+
+```
+
+## Exploratory data Analysis
+#Univariate Analysis
+
+```{r}
+summary(df)
+```
+
+
+
+## Bivariate Analysis
+```{r}
+#install ggplot2 to plot the graphs
+install.packages("ggplot2")
+```
+```{r}
+#read the library
+library(ggplot2)
+```
+
+```{r}
+#Checking the bounce rates for pages 
+ggplot(df, aes(x = Administrative, y = BounceRates)) +
+  geom_point(aes())
+```
+
+
+```{r}
+#The bounce for the administration page is higher for page 10 and below
+```
+
+```{r}
+#Bounce rates for informational page 
+ggplot(df, aes(x = Informational, y = BounceRates)) +
+  geom_point(color='red')
+
+#The bounce rates are also higher for this page
+```
+
+```{r}
+#comparing the product related site and the month customers visited 
+ggplot(df, aes(x=Month,y = ProductRelated)) +geom_bar(stat = "identity",color='purple')
+
+#The Russian brand is located in countries in Europe and ASia 
+#Europe and Asia experience the same climate change 
+#Winter is in December - February
+#Summer is in June - August
+#Autumn is in September - November
+#Spring is in March to May 
+
+#More people would shop more during the month of May since they are in preparation for the summer season that is about to start
+#November is also high since most of the promos are taking place then
+```
+```{r}
+#people viewing the products and purchasing 
+ggplot(df, aes(x=Revenue,y = ProductRelated)) +geom_bar(stat = "identity",color='red')
+
+#majority of the people that view the products do not purchase from the site 
+#People could be clicking to admire the outfits,see the price range or just to steal design ideas
+```
+```{r}
+#Revenue generated during the week 
+options(repr.plot.width = 13, repr.plot.height = 7)
+g <- ggplot(df, aes(Revenue))
+g + geom_bar(aes(fill = Weekend)) + ggtitle("Revenue generated during the week") + xlab("Revenue") 
+
+#The company generates more money during the weekdays compared to the weekends
+```
+```{r}
+#Checking who mostly purchases from the site
+options(repr.plot.width = 13, repr.plot.height = 7)
+g <- ggplot(df, aes(Revenue))
+g + geom_bar(aes(fill = VisitorType)) + ggtitle("Purchasing customers") + xlab("Revenue") 
+#Most of the people purchasing are new customers
+#a bigger ratio is purchasing compared to the returning customers
+#However,its alarming how majority of them do not purchase
+```
+```{r}
+#correlation
+plot_correlation(df)
+```
+## Encoding
+```{r}
+#install package
+install.packages("dplyr")
+```
+```{r}
+library(dplyr)
+```
+
+```{r}
+#manual encoding 
+Monthh = data.frame(model.matrix(~0+df$Month))
+VisitorTypee = data.frame(model.matrix(~0+df$VisitorType))
+Weekendd = data.frame(model.matrix(~0+df$Weekend))
+Revenuee = data.frame(model.matrix(~0+df$Revenue))
+
+# Dropping columns which have already encoded
+drop_cols = c('Month', 'VisitorType','Weekend','Revenue')
+df = select(data.frame(cbind(df,Month, VisitorTypee,Weekendd,Revenuee)), -drop_cols)
+```
+```{r}
+#view all the columns 
+options(repr.matrix.max.cols=50, repr.matrix.max.rows=100)
+```
+
+```{r}
+#viewing if the label encoding has worked 
+head(df)
+```
+## modelling
+# k-means
+```{r}
+#view all the column names
+colnames(df)
+```
+
+```{r}
+#normalize the data                          
+normalize <- function(x){
+  return ((x-min(x)) / (max(x)-min(x)))
+}
+
+df$Administrative<- normalize(df$Administrative)
+df$Administrative_Duration<- normalize(df$Administrative_Duration)
+df$Informational<- normalize(df$Informational)
+df$Informational_Duration<- normalize(df$Informational_Duration)
+df$ProductRelated<- normalize(df$ProductRelated)
+df$ProductRelated_Duration<- normalize(df$ProductRelated_Duration)
+df$BounceRates<- normalize(df$BounceRates)
+df$ExitRates<- normalize(df$ExitRates)
+df$PageValues<- normalize(df$PageValues) 
+df$SpecialDay<- normalize(df$SpecialDay)
+df$OperatingSystems<- normalize(df$OperatingSystems)
+df$Browser<- normalize(df$Browser)
+df$Region<- normalize(df$Region)
+df$TrafficType<- normalize(df$TrafficType)
+df$df.MonthAug<- normalize(df$df.MonthAug)
+df$df.MonthDec<- normalize(df$df.MonthDec)
+df$df.MonthFeb<- normalize(df$df.MonthFeb)
+df$df.MonthJul<- normalize(df$df.MonthJul)
+df$df.MonthJune<- normalize(df$df.MonthJune)
+df$df.MonthMar<- normalize(df$df.MonthMar)
+df$df.MonthMay<- normalize(df$df.MonthMay)
+df$df.MonthNov<- normalize(df$df.MonthNov)
+df$df.MonthOct<- normalize(df$df.MonthOct)
+df$df.MonthSep<- normalize(df$df.MonthSep)
+df$df.VisitorTypeNew_Visitor<- normalize(df$df.VisitorTypeNew_Visitor)
+df$df.VisitorTypeOther<- normalize(df$df.VisitorTypeOther)
+df$df.VisitorTypeReturning_Visitor<- normalize(df$df.VisitorTypeReturning_Visitor)
+df$df.WeekendFALSE<- normalize(df$df.WeekendFALSE)
+df$df.WeekendTRUE<- normalize(df$df.WeekendTRUE)
+df$df.RevenueFALSE<- normalize(df$df.RevenueFALSE)
+df$df.RevenueTRUE<- normalize(df$df.RevenueTRUE)
+head(df)       
+```
+```{r}
+# Applying the K-means clustering algorithm with no. of centroids(k)=3
+result<- kmeans(df,3) 
+#view
+result$size
+```
+```{r}
+# Getting the value of cluster center datapoint value(3 centers for k=3)
+result$centers
+```
+```{r}
+# Getting the cluster vector that shows the cluster where each record falls
+result$cluster
+```
+```{r}
+# Visualizing the  clustering results
+par(mfrow = c(1,2), mar = c(5,4,2,2))
+plot(df[c(1,2)],result$cluster)
+```
+
